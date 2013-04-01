@@ -1,8 +1,6 @@
 package net.lardcave.keepassnfc;
 
 import java.io.File;
-import java.io.FileInputStream;
-import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.security.SecureRandom;
 
@@ -20,8 +18,6 @@ import android.app.Activity;
 import android.app.PendingIntent;
 import android.content.ActivityNotFoundException;
 import android.content.Intent;
-import android.util.Log;
-import android.view.Menu;
 import android.view.View;
 import android.view.WindowManager;
 import android.widget.Button;
@@ -45,7 +41,10 @@ public class WriteActivity extends Activity {
 	private static final int PASSWORD_YES = 2;
 	private static final int KEYFILE_NO = 0;
 	private static final int KEYFILE_YES = 1;
-	private File keyfile;
+	private static final int REQUEST_KEYFILE = 0;
+	private static final int REQUEST_DATABASE = 1;
+	private File keyfile = null;
+	private File database = null;
 	private byte[] random_bytes = new byte[Settings.random_bytes_length];
 	NdefMessage nfc_payload;
 	
@@ -134,12 +133,26 @@ public class WriteActivity extends Activity {
 			    Intent target = FileUtils.createGetContentIntent();
 			    Intent intent = Intent.createChooser(target, "Select a keyfile");
 			    try {
-			        startActivityForResult(intent, 0);
+			        startActivityForResult(intent, REQUEST_KEYFILE);
 			    } catch (ActivityNotFoundException e) {
 			    	e.printStackTrace();
 			    }
 			}
 			
+		});
+		
+		ib = (ImageButton) findViewById(R.id.choose_database);
+		ib.setOnClickListener(new OnClickListener() {
+			@Override
+			public void onClick(View view) {
+			    Intent target = FileUtils.createGetContentIntent();
+			    Intent intent = Intent.createChooser(target, "Select a database");
+			    try {
+			        startActivityForResult(intent, REQUEST_DATABASE);
+			    } catch (ActivityNotFoundException e) {
+			    	e.printStackTrace();
+			    }				
+			}
 		});
 	}
 
@@ -147,7 +160,7 @@ public class WriteActivity extends Activity {
 	@Override
 	protected void onActivityResult(int requestCode, int resultCode, Intent data) {
 	    switch (requestCode) {
-	    case 0:  
+	    case REQUEST_KEYFILE:  
 	        if (resultCode == RESULT_OK) {  
 	            // The URI of the selected file 
 	            final Uri uri = data.getData();
@@ -156,6 +169,13 @@ public class WriteActivity extends Activity {
 	            updateNonRadioViews();
 	        }
 	        break;
+	    case REQUEST_DATABASE:
+	    	if (resultCode == RESULT_OK) {
+	    		final Uri uri = data.getData();
+	    		database = FileUtils.getFile(uri);
+	    		updateNonRadioViews();
+	    	}
+	    	break;
 	    }
 	}
 
@@ -166,10 +186,10 @@ public class WriteActivity extends Activity {
 		rng.nextBytes(random_bytes);
 
 		byte[] nfcinfo_index = new byte[Settings.index_length];
-		nfcinfo_index[0] = 0;
-		nfcinfo_index[1] = 0;
+		nfcinfo_index[0] = '0';
+		nfcinfo_index[1] = '0';
 		
-		assert(Settings.index_length + Settings.password_length + Settings.keyfile_length == Settings.nfc_length);
+		assert(Settings.index_length + Settings.password_length == Settings.nfc_length);
 		byte[] nfc_all = new byte[Settings.nfc_length];
 		System.arraycopy(nfcinfo_index, 0, nfc_all, 0, Settings.index_length);
 		System.arraycopy(random_bytes, 0, nfc_all, Settings.index_length, Settings.random_bytes_length);
@@ -179,111 +199,41 @@ public class WriteActivity extends Activity {
 		nfc_payload = new NdefMessage(ndef_records);
 	}
 	
-	private byte[] read_key_file()
-	{
-		FileInputStream keyfile_stream;
-		try {
-			keyfile_stream = openFileInput(keyfile.getAbsolutePath());
-		} catch (FileNotFoundException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-			return null;
-		}
-		byte[] data = new byte[(int)keyfile.length()];
-		try {
-			keyfile_stream.read(data);
-			keyfile_stream.close();
-		} catch (IOException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-			return null;
-		}
-		
-		return data;
-	}
-	
 	private boolean encrypt_and_store()
 	{	
-		SecureRandom rng = new SecureRandom();		
-
-		// Read the key file, if we have one.
-		byte[] keyfile_bytes = null;
+		DatabaseInfo dbinfo;
+		int config;
+		String keyfile_filename;
+		String password;
 		
-		if (keyfile_option == KEYFILE_YES)
-		{
-			keyfile_bytes = read_key_file();
-			if (keyfile_bytes == null) {
-				Toast.makeText(getApplicationContext(), "Couldn't read key file", Toast.LENGTH_SHORT).show();
-				return false;
-			}
+		if (database == null) {
+			Toast.makeText(getApplicationContext(), "Please select a database first", Toast.LENGTH_SHORT).show();
+			return false;
 		}
 		
-		// Grab the password.
-		byte[] password_bytes = null;
-		
-		if (password_option == PASSWORD_YES)
-		{
-			EditText et_password = (EditText) findViewById(R.id.password);
-			password_bytes = et_password.getText().toString().getBytes();
-		}
-		
-		// Create the unencrypted version, consisting of:
-		// 2 bytes: database filename length (currently 0 = unused)
-		// n bytes: database filename (currently 0 bytes)
-		// 1 byte : config (currently 0 = don't ask for password; 1 = ask for password)
-		// 1 byte : password length, or 0 for no password (to be encrypted)
-		// n bytes: password (to be encrypted)
-		// 1 byte : keyfile length, or 0 for no keyfile (to be encrypted)
-		// n bytes: keyfile (to be encrypted)
-		byte[] encrypted_all = new byte[2 + 0 + 1 + Settings.password_length + Settings.keyfile_length];
-		int pos, i, size;
-		
-		pos = 0;
-		
-		// Database filename length
-		encrypted_all[pos++] = 0;
-		encrypted_all[pos++] = 0;
-		// No database filename.
-		// Config byte
 		if (password_option == PASSWORD_ASK)
-			encrypted_all[pos++] = 1;
+			config = Settings.CONFIG_PASSWORD_ASK;
 		else
-			encrypted_all[pos++] = 0;
-
-		// Password
-		encrypted_all[pos++] = (byte)password_bytes.length;
-		for (i = 0; i < password_bytes.length; i++) {
-			encrypted_all[pos++] = password_bytes[i];
-		}
-		// Pad out the password with random data. NB Settings.password_length also includes the length byte.
-		size = (Settings.password_length - 1) - password_bytes.length;
-		if (size > 0) { // TODO: Detect & reject too-long passwords
-			for (i = 0; i < size; i++)
-				encrypted_all[pos++] = (byte)(rng.nextInt() & 0xff);
+			config = Settings.CONFIG_NOTHING;
+		
+		// Policy: no password is stored as null password (bit silly?)
+		if (password_option == PASSWORD_NO)
+			password = "";
+		else {
+			EditText et_password = (EditText) findViewById(R.id.password);
+			password = et_password.getText().toString();
 		}
 		
-		// Keyfile
-		encrypted_all[pos++] = (byte)keyfile_bytes.length;
-		for (i = 0; i < keyfile_bytes.length; i++) {
-			encrypted_all[pos++] = keyfile_bytes[i];
+		// Policy: no keyfile is stored as empty filename.		
+		if (keyfile_option == KEYFILE_NO)
+			keyfile_filename = "";
+		else {
+			keyfile_filename = keyfile.getAbsolutePath();
 		}
-		// Do the same padding with keyfile data.
-		size = (Settings.keyfile_length - 1) - keyfile_bytes.length;
-		if (size > 0) {
-			for (i = 0; i < size; i++)
-				encrypted_all[pos++] = (byte)(rng.nextInt() & 0xff);				
-		}
+				
+		dbinfo = new DatabaseInfo(database.getAbsolutePath(), keyfile_filename, password, config);
 		
-		assert (pos == encrypted_all.length);
-		assert (encrypted_all.length - 2 == random_bytes.length);
-		
-		// Encrypt everything
-		for (i = 2; i < encrypted_all.length; i++)
-			encrypted_all[i] ^= random_bytes[i - 2];
-		
-		// Write it to permanent storage
-		
-		return true;
+		return dbinfo.serialise(this, random_bytes);
 	}
 	
 	private void nfc_enable()
@@ -335,6 +285,12 @@ public class WriteActivity extends Activity {
 			tv_keyfile.setText(keyfile.getAbsolutePath());
 		else
 			tv_keyfile.setText("...");
+		
+		TextView tv_database = (TextView) findViewById(R.id.database_name);
+		if (database != null)
+			tv_database.setText(database.getAbsolutePath());
+		else
+			tv_database.setText("...");
 	}
 	
 	private void setRadio(int id, boolean checked)
@@ -369,7 +325,6 @@ public class WriteActivity extends Activity {
 			} catch (IOException e) {
 				// TODO Auto-generated catch block
 				e.printStackTrace();
-				return;
 			} catch (FormatException e) {
 				// TODO Auto-generated catch block
 				e.printStackTrace();

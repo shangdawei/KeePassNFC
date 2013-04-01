@@ -27,15 +27,25 @@
 		    android:name="com.ipaulpro.afilechooser.FileChooserActivity"
 		    android:icon="@drawable/ic_chooser"
 		    android:label="@string/choose_file" >
-        <intent-filter>
-            <action android:name="android.intent.action.GET_CONTENT" />
-
-            <category android:name="android.intent.category.DEFAULT" />
-            <category android:name="android.intent.category.OPENABLE" />
-
-            <data android:mimeType="*/*" />
-        </intent-filter>
-    </activity>
+	        <intent-filter>
+	            <action android:name="android.intent.action.GET_CONTENT" />
+	
+	            <category android:name="android.intent.category.DEFAULT" />
+	            <category android:name="android.intent.category.OPENABLE" />
+	
+	            <data android:mimeType="*/*" />
+	        </intent-filter>
+	    </activity>
+	    <activity
+	        android:name="net.lardcave.keepassnfc.ReadActivity"
+	        android:icon="@drawable/ic_launcher">
+    		<intent-filter>
+				<action android:name="android.nfc.action.NDEF_DISCOVERED"/>
+				<category android:name="android.intent.category.DEFAULT"/>
+				<data android:mimeType="application/x-keepassnfc-v1" />
+			</intent-filter>
+		</activity>		    
+	        
     </application>
 
 </manifest>
