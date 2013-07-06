@@ -43,10 +43,11 @@ public class WriteActivity extends Activity {
 	private static final int KEYFILE_YES = 1;
 	private static final int REQUEST_KEYFILE = 0;
 	private static final int REQUEST_DATABASE = 1;
+    private static final int REQUEST_NFC_WRITE = 2;
 	private File keyfile = null;
 	private File database = null;
 	private byte[] random_bytes = new byte[Settings.random_bytes_length];
-	NdefMessage nfc_payload;
+	public static NdefMessage nfc_payload;
 	
 	private int keyfile_option = KEYFILE_NO;
 	private int password_option = PASSWORD_NO;
@@ -116,12 +117,10 @@ public class WriteActivity extends Activity {
 			@Override
 			public void onClick(View self) {
 				create_random_bytes();
-				if (encrypt_and_store())
-				{
-					nfc_enable();
-					self.setEnabled(false);
-				}
-			}			
+                self.setEnabled(false);
+                Intent intent = new Intent(getApplicationContext(), WriteNFCActivity.class);
+                startActivityForResult(intent, REQUEST_NFC_WRITE);
+			}
 		});
 		
 		ImageButton ib = (ImageButton) findViewById(R.id.choose_keyfile);
@@ -176,7 +175,23 @@ public class WriteActivity extends Activity {
 	    		updateNonRadioViews();
 	    	}
 	    	break;
-	    }
+        case REQUEST_NFC_WRITE:
+            // Re-enable NFC writing.
+            Button nfc_write = (Button) findViewById(R.id.write_nfc);
+            nfc_write.setEnabled(true);
+
+            if (resultCode == 1) {
+                if (encrypt_and_store()) {
+                    // Job well done! Let's have some toast.
+                    Toast.makeText(getApplicationContext(), "Tag written successfully!", Toast.LENGTH_SHORT).show();
+                } else {
+                    Toast.makeText(getApplicationContext(), "Error writing to application database!", Toast.LENGTH_SHORT).show();
+                }
+            } else {
+                // can't think of a good toast analogy for fail
+                Toast.makeText(getApplicationContext(), "Couldn't write tag. :(", Toast.LENGTH_SHORT).show();
+            }
+        }
 	}
 
 	
@@ -235,36 +250,7 @@ public class WriteActivity extends Activity {
 		
 		return dbinfo.serialise(this, random_bytes);
 	}
-	
-	private void nfc_enable()
-	{
-		// Register for any NFC event (only while we're in the foreground)
 
-        NfcAdapter adapter = NfcAdapter.getDefaultAdapter(this);
-        PendingIntent pending_intent = PendingIntent.getActivity(this, 0, new Intent(this, getClass()).addFlags(Intent.FLAG_ACTIVITY_SINGLE_TOP), 0);
-        
-        adapter.enableForegroundDispatch(this, pending_intent, null, null);
-	}
-	
-	private void nfc_disable()
-	{
-        NfcAdapter adapter = NfcAdapter.getDefaultAdapter(this);
-        
-        adapter.disableForegroundDispatch(this);
-	}
-
-	@Override
-	protected void onResume() {
-		super.onResume();
-	}
-	
-	@Override
-	protected void onPause() {
-		super.onPause();
-		
-		nfc_disable();
-	}
-	
 	private void updateRadioViews()
 	{
 		setRadio(R.id.keyfile_no, keyfile_option == KEYFILE_NO);
@@ -306,42 +292,5 @@ public class WriteActivity extends Activity {
 		return true;
 	}
 */
-	@Override
-	public void onNewIntent(Intent intent)
-	{
-		String action = intent.getAction();
-		if (NfcAdapter.ACTION_NDEF_DISCOVERED.equals(action) 
-				|| NfcAdapter.ACTION_TAG_DISCOVERED.equals(action)) {
-			boolean success = false;
-			Tag tag = intent.getParcelableExtra(NfcAdapter.EXTRA_TAG);
-
-			// Write the payload to the tag.
-			Ndef ndef = Ndef.get(tag);
-			try {
-				ndef.connect();
-				ndef.writeNdefMessage(nfc_payload);
-				ndef.close();
-				success = true;
-			} catch (IOException e) {
-				// TODO Auto-generated catch block
-				e.printStackTrace();
-			} catch (FormatException e) {
-				// TODO Auto-generated catch block
-				e.printStackTrace();
-			}
-			
-			// Re-enable NFC writing.
-			Button nfc_write = (Button) findViewById(R.id.write_nfc);
-			nfc_write.setEnabled(true);
-			
-			if (success) {
-				// Job well done! Let's have some toast.
-				Toast.makeText(getApplicationContext(), "Tag written successfully!", Toast.LENGTH_SHORT).show();
-			} else {
-				// can't think of a good toast analogy for fail
-				Toast.makeText(getApplicationContext(), "Couldn't write tag. :(", Toast.LENGTH_SHORT).show();
-			}
-		}
-	}
 
 }

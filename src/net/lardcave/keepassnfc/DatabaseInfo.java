@@ -51,7 +51,7 @@ public class DatabaseInfo {
 	private static String decrypt_password(byte[] crypted_password, byte[] encryption_bytes, int offset)
 	{
 		int i, length;
-		
+
 		for (i = 0; i < Settings.password_length; i++)
 			crypted_password[i] ^= encryption_bytes[i + offset];
 		
