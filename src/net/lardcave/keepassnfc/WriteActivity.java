@@ -6,6 +6,10 @@ import java.security.SecureRandom;
 
 import com.ipaulpro.afilechooser.utils.FileUtils;
 
+import android.content.Context;
+import android.location.Location;
+import android.location.LocationListener;
+import android.location.LocationManager;
 import android.net.Uri;
 import android.nfc.FormatException;
 import android.nfc.NdefMessage;
@@ -67,6 +71,7 @@ public class WriteActivity extends Activity {
 		}
 		
 		initialiseView();
+
 	}
 	
 	@Override
