@@ -1,28 +1,17 @@
 package net.lardcave.keepassnfc;
 
 import java.io.File;
-import java.io.IOException;
 import java.security.SecureRandom;
 
-import com.ipaulpro.afilechooser.utils.FileUtils;
-
-import android.content.Context;
-import android.location.Location;
-import android.location.LocationListener;
-import android.location.LocationManager;
-import android.net.Uri;
-import android.nfc.FormatException;
-import android.nfc.NdefMessage;
-import android.nfc.NdefRecord;
-import android.nfc.NfcAdapter;
-import android.nfc.Tag;
-import android.nfc.tech.Ndef;
-import android.os.Bundle;
 import android.app.Activity;
-import android.app.PendingIntent;
 import android.content.ActivityNotFoundException;
 import android.content.Intent;
+import android.net.Uri;
+import android.nfc.NdefMessage;
+import android.nfc.NdefRecord;
+import android.os.Bundle;
 import android.view.View;
+import android.view.View.OnClickListener;
 import android.view.WindowManager;
 import android.widget.Button;
 import android.widget.CompoundButton;
@@ -32,7 +21,8 @@ import android.widget.ImageButton;
 import android.widget.RadioButton;
 import android.widget.TextView;
 import android.widget.Toast;
-import android.view.View.OnClickListener;
+
+import com.ipaulpro.afilechooser.utils.FileUtils;
 
 
 /* Probably want this to have foreground NFC-everything, so that people can scan a fob and then press the button?

@@ -1,19 +1,17 @@
 package net.lardcave.keepassnfc;
 
+import java.io.IOException;
+
+import android.app.Activity;
 import android.app.PendingIntent;
 import android.content.Intent;
 import android.nfc.FormatException;
-import android.nfc.NdefMessage;
 import android.nfc.NfcAdapter;
 import android.nfc.Tag;
 import android.nfc.tech.Ndef;
 import android.os.Bundle;
-import android.app.Activity;
 import android.view.View;
 import android.widget.Button;
-import android.util.Log;
-
-import java.io.IOException;
 
 /**
  * Created by wzdd on 06/07/2013.
