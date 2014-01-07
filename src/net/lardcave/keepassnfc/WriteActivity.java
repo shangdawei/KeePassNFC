@@ -169,14 +169,14 @@ public class WriteActivity extends Activity {
 	            // The URI of the selected file 
 	            final Uri uri = data.getData();
 	            // Create a File from this Uri
-	            keyfile = FileUtils.getFile(uri);
+	            keyfile = FileUtils.getFile(this, uri);
 	            updateNonRadioViews();
 	        }
 	        break;
 	    case REQUEST_DATABASE:
 	    	if (resultCode == RESULT_OK) {
 	    		final Uri uri = data.getData();
-	    		database = FileUtils.getFile(uri);
+	    		database = FileUtils.getFile(this, uri);
 	    		updateNonRadioViews();
 	    	}
 	    	break;
