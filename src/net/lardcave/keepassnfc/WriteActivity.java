@@ -67,7 +67,7 @@ public class WriteActivity extends Activity {
     private static final int REQUEST_NFC_WRITE = 2;
 	private File keyfile = null;
 	private File database = null;
-	private byte[] random_bytes = new byte[Settings.random_bytes_length];
+	private byte[] random_bytes = new byte[Settings.key_length];
 	public static NdefMessage nfc_payload;
 	
 	private int keyfile_option = KEYFILE_NO;
@@ -222,17 +222,8 @@ public class WriteActivity extends Activity {
 		SecureRandom rng = new SecureRandom();		
 		rng.nextBytes(random_bytes);
 
-		byte[] nfcinfo_index = new byte[Settings.index_length];
-		nfcinfo_index[0] = '0';
-		nfcinfo_index[1] = '0';
-		
-		assert(Settings.index_length + Settings.password_length == Settings.nfc_length);
-		byte[] nfc_all = new byte[Settings.nfc_length];
-		System.arraycopy(nfcinfo_index, 0, nfc_all, 0, Settings.index_length);
-		System.arraycopy(random_bytes, 0, nfc_all, Settings.index_length, Settings.random_bytes_length);
-		
 		// Create the NFC version of this data		
-		NdefRecord ndef_records = NdefRecord.createMime(Settings.nfc_mime_type, nfc_all);
+		NdefRecord ndef_records = NdefRecord.createMime(Settings.nfc_mime_type, random_bytes);
 		nfc_payload = new NdefMessage(ndef_records);
 	}
 	
@@ -270,7 +261,12 @@ public class WriteActivity extends Activity {
 				
 		dbinfo = new DatabaseInfo(database.getAbsolutePath(), keyfile_filename, password, config);
 		
-		return dbinfo.serialise(this, random_bytes);
+		try {
+			return dbinfo.serialise(this, random_bytes);
+		} catch (CryptoFailedException e) {
+			Toast.makeText(getApplicationContext(), "Couldn't encrypt data :(", Toast.LENGTH_SHORT).show();
+			return false;
+		}
 	}
 
 	private void updateRadioViews()

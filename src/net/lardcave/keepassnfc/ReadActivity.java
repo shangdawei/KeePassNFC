@@ -35,6 +35,7 @@ import android.nfc.NdefRecord;
 import android.nfc.NfcAdapter;
 import android.os.Bundle;
 import android.os.Parcelable;
+import android.widget.Toast;
 
 public class ReadActivity extends Activity {
 	@Override
@@ -70,10 +71,14 @@ public class ReadActivity extends Activity {
 	
 	private boolean load_from_nfc(byte[] payload)
 	{
-		// Ignore first two bytes of payload (it's a filename index which is unused)
-		DatabaseInfo dbinfo = DatabaseInfo.deserialise(this, payload, 2);
-		
-		return startKeepassActivity(dbinfo);
+		try {
+			DatabaseInfo dbinfo = DatabaseInfo.deserialise(this, payload);
+			
+			return startKeepassActivity(dbinfo);
+		} catch (CryptoFailedException e) {
+			Toast.makeText(this, "Couldn't decrypt data. Re-do key?", Toast.LENGTH_SHORT).show();
+			return false;
+		}
 	}
 	
 	private boolean startKeepassActivity(DatabaseInfo dbinfo)

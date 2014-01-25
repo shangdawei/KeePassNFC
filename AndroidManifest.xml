@@ -49,7 +49,7 @@
     		<intent-filter>
 				<action android:name="android.nfc.action.NDEF_DISCOVERED"/>
 				<category android:name="android.intent.category.DEFAULT"/>
-				<data android:mimeType="application/x-keepassnfc-v1" />
+				<data android:mimeType="application/x-keepassnfc-2" />
 			</intent-filter>
 		</activity>		    
 	        
